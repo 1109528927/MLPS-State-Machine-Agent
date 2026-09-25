@@ -1,0 +1,68 @@
+/* 方案 A：等保整改工作台主题 */
+:root {
+  --wb-sidebar: #15202b;
+  --wb-sidebar-hover: #1e2d3d;
+  --wb-sidebar-active: #243447;
+  --wb-accent: #1d6b5c;
+  --wb-accent-soft: #e6f2ef;
+  --wb-bg: #e8edf3;
+  --wb-card: #ffffff;
+  --wb-text: #1a2332;
+  --wb-muted: #6b7785;
+  --wb-border: #d8dee6;
+  --wb-header: #ffffff;
+  --wb-shadow: 0 1px 3px rgba(21, 32, 43, 0.08);
+
+  --el-color-primary: #1d6b5c;
+  --el-color-primary-light-3: #4a9184;
+  --el-color-primary-light-5: #78b0a6;
+  --el-color-primary-light-7: #a6cfc8;
+  --el-color-primary-light-8: #bddcd6;
+  --el-color-primary-light-9: #e6f2ef;
+  --el-color-primary-dark-2: #17564a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+  color: var(--wb-text);
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--wb-bg);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 业务页统一白卡片 */
+.page-panel {
+  background: var(--wb-card);
+  border-radius: 10px;
+  border: 1px solid var(--wb-border);
+  box-shadow: var(--wb-shadow);
+  padding: 20px 24px;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.page-panel .page-title {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--wb-text);
+}
+
+.page-panel .page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}

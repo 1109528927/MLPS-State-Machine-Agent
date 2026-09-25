@@ -1,0 +1,7 @@
+{
+  "include": ["back"],
+  "extraPaths": ["back"],
+  "venvPath": "back",
+  "venv": ".venv",
+  "pythonVersion": "3.12"
+}
