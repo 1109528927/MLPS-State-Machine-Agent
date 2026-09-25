@@ -1,0 +1,14 @@
+langchain
+langchain-openai
+openai
+python-dotenv
+uvicorn
+fastapi
+SQLAlchemy
+aiomysql
+pymysql
+langgraph
+redis
+passlib[bcrypt]
+bcrypt
+greenlet

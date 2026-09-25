@@ -1,0 +1,8 @@
+# 缩小索引：笔记和依赖会拖死 Vue/TS 语言服务（表现为提示闪一下就没）
+全部知识点/
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/dist/
+**/.pnpm-store/
+*.pyc
