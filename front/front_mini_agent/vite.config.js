@@ -25,7 +25,10 @@ export default defineConfig({
     proxy:{
       '/api': {
         target: 'http://127.0.0.1:8000', // 你的 FastAPI
-        changeOrigin: true
+        changeOrigin: true,
+        // SSE 打字：别让代理把流攒齐再吐
+        timeout: 0,
+        proxyTimeout: 0,
       }
     }
   }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -8,25 +8,47 @@ import {
   get_alluser,
   delete_member,
 } from '@/api/projects'
+import { get_user_list } from '@/api/login'
 
 const router = useRouter()
 const loading = ref(false)
 const submitting = ref(false)
 const projects = ref([])
+const allUsers = ref([])
 const projectId = ref(null)
 const userId = ref(null)
 const members = ref([])
 
+const memberIdSet = computed(
+  () => new Set(members.value.map((m) => Number(m.user_id))),
+)
+
+/** 未加入当前项目的用户，供下拉选择 */
+const candidateUsers = computed(() =>
+  allUsers.value.filter((u) => !memberIdSet.value.has(Number(u.id))),
+)
+
 async function loadProjects() {
   loading.value = true
   try {
-    const res = await getprojects({ name: '' })
-    projects.value = res.data?.data ?? []
+    const res = await getprojects({ page: 1, page_size: 100 })
+    projects.value = res.data?.data?.items ?? []
   } catch (e) {
     console.error(e)
     ElMessage.error(e.response?.data?.message || '加载项目失败')
   } finally {
     loading.value = false
+  }
+}
+
+async function loadAllUsers() {
+  try {
+    const res = await get_user_list()
+    allUsers.value = res.data?.data ?? []
+  } catch (e) {
+    console.error(e)
+    allUsers.value = []
+    ElMessage.error(e.response?.data?.message || '加载用户失败')
   }
 }
 
@@ -50,7 +72,7 @@ async function onSubmit() {
     return
   }
   if (userId.value == null || userId.value === '') {
-    ElMessage.warning('请输入要分配的用户 ID')
+    ElMessage.warning('请选择要分配的用户')
     return
   }
 
@@ -111,15 +133,30 @@ function cancel() {
 }
 
 watch(projectId, (id) => {
+  userId.value = null
   loadMembers(id)
 })
 
-onMounted(loadProjects)
+onMounted(async () => {
+  await Promise.all([loadProjects(), loadAllUsers()])
+})
 </script>
 
 <template>
   <div class="page-panel form-panel" v-loading="loading">
-    <h2 class="page-title">分配成员</h2>
+    <div class="page-head">
+      <button
+        type="button"
+        class="page-back"
+        title="返回项目列表"
+        @click="cancel"
+      >
+        ←
+      </button>
+      <div class="page-head-main">
+        <h2 class="page-title">分配成员</h2>
+      </div>
+    </div>
 
     <el-form class="innerbox" label-width="120px" label-position="right">
       <el-form-item label="项目">
@@ -140,16 +177,25 @@ onMounted(loadProjects)
 
       <el-form-item label="已有成员">
         <div class="member-list">
-          <template v-if="!projectId">请先选择项目</template>
-          <template v-else-if="members.length === 0">暂无成员</template>
+          <template v-if="!projectId">
+            <p class="list-empty member-hint">请先选择项目</p>
+          </template>
+          <template v-else-if="members.length === 0">
+            <p class="list-empty member-hint">暂无成员</p>
+          </template>
           <template v-else>
-            <div v-for="m in members" :key="m.user_id" class="member-row">
-              <span>{{ m.username }}（工号：{{ m.employee_no }}）</span>
+            <div
+              v-for="m in members"
+              :key="m.user_id"
+              class="list-row member-row"
+            >
+              <span class="name">{{ m.username }}</span>
+              <span class="muted">工号：{{ m.employee_no }}</span>
               <button
                 type="button"
                 class="remove-btn"
                 title="移出项目"
-                @click="onRemove(m)"
+                @click.stop="onRemove(m)"
               >
                 ×
               </button>
@@ -158,61 +204,74 @@ onMounted(loadProjects)
         </div>
       </el-form-item>
 
-      <el-form-item label="用户 ID">
-        <el-input
+      <el-form-item label="添加用户">
+        <el-select
           v-model="userId"
-          type="number"
-          placeholder="请输入要分配的用户 ID"
+          placeholder="请选择用户（可搜索账号/工号）"
+          filterable
           clearable
-        />
+          :disabled="!projectId"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="u in candidateUsers"
+            :key="u.id"
+            :label="`${u.username}（工号 ${u.employee_no || '—'}）`"
+            :value="u.id"
+          />
+        </el-select>
       </el-form-item>
 
-      <el-form-item>
-        <el-button type="primary" :loading="submitting" @click="onSubmit">
-          确定
-        </el-button>
-        <el-button @click="cancel">取消</el-button>
+      <el-form-item class="form-actions-item">
+        <div class="form-actions">
+          <el-button @click="cancel">取消</el-button>
+          <el-button type="primary" :loading="submitting" @click="onSubmit">
+            确定
+          </el-button>
+        </div>
       </el-form-item>
     </el-form>
   </div>
 </template>
 
 <style scoped>
-.form-panel {
-  max-width: 640px;
-}
 .innerbox {
   width: 100%;
   max-width: 520px;
 }
 .member-list {
   min-height: 32px;
-  color: var(--wb-muted);
-  line-height: 1.5;
   width: 100%;
 }
+.member-hint {
+  padding: 12px 0;
+  text-align: left;
+}
 .member-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 8px;
-  border-radius: 6px;
-  color: var(--wb-text);
+  display: grid;
+  grid-template-columns: 1.2fr 1fr auto;
+  cursor: default;
+  margin-bottom: 4px;
+  border: 1px solid var(--wb-border);
 }
 .member-row:hover {
-  background: var(--wb-accent-soft);
+  border-color: rgba(29, 107, 92, 0.25);
 }
 .remove-btn {
-  display: none;
   border: none;
   background: transparent;
-  color: #c45656;
+  color: var(--wb-danger);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
   padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 .member-row:hover .remove-btn {
-  display: inline-block;
+  opacity: 1;
+}
+.form-actions-item :deep(.el-form-item__content) {
+  justify-content: flex-end;
 }
 </style>

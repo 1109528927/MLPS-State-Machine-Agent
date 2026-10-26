@@ -1,14 +1,11 @@
 from datetime import datetime
-from turtle import update
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, false, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import UniqueConstraint  # 文件顶部和其他 import 放一起
 
 class Base(DeclarativeBase):
     create_at: Mapped[datetime] = mapped_column(
         DateTime,
-        insert_default=func.now(),
-        default=func.now,
+        default=func.now(),
         comment="这是创建时间",
     )
 
@@ -27,8 +24,9 @@ class User(Base):
     password:Mapped[str]=mapped_column(String(255),nullable=False)
     employee_no:Mapped[str]=mapped_column(String(50),unique=True,nullable=False)
     role:Mapped[str]=mapped_column(String(20),nullable=False,default="inspector")
-    updated_at:Mapped[datetime]=mapped_column(DateTime,  insert_default=func.now(),
-        default=func.now,onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), onupdate=func.now()
+    )
 
 
 class UserToken(Base):

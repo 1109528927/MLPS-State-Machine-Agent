@@ -18,6 +18,7 @@ from cache.gap_cache import (
 )
 from crud.projects import (
     getprojects,
+    getprojects_page,
     getlist_gaps,
     apply_gap_action,
     list_gap_logs,
@@ -50,26 +51,66 @@ def _project_rows_to_data(rows) -> list[dict]:
 @router.get("/list")
 async def getprojectlist(
     name: str | None = None,
+    page: int = 1,
+    page_size: int = 10,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # 有搜索词：不走缓存，直接查库
-    if name:
-        rows = await getprojects(name, db, current_user.id, current_user.role)
+    """
+    分页项目列表。data = { items, total, page, page_size }。
+    无搜索词：旁路缓存存「全量 list」，再内存切片；有搜索词：走库分页。
+    """
+    # crud 未写完时可先占位：
+    # return success_response(message="返回项目列表成功", data={
+    #     "items": [], "total": 0, "page": page, "page_size": page_size,
+    # })
+
+    if page < 1:
+        page = 1
+    if page_size < 1:
+        page_size = 10
+    if page_size > 100:
+        page_size = 100
+    skip = (page - 1) * page_size
+
+    # 有搜索词：不走缓存，库内 offset/limit
+    if name and name.strip():
+        rows, total = await getprojects_page(
+            name.strip(),
+            db,
+            current_user.id,
+            current_user.role,
+            skip,
+            page_size,
+        )
         return success_response(
             message="返回项目列表成功",
-            data=_project_rows_to_data(rows),
+            data={
+                "items": _project_rows_to_data(rows),
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+            },
         )
 
-    # 无搜索：旁路读缓存
+    # 无搜索：旁路读「全量」缓存，再切片
     cached = await get_cached_project_list(current_user.id)
-    if cached is not None:
-        return success_response(message="返回项目列表成功", data=cached)
+    if cached is None:
+        rows = await getprojects(None, db, current_user.id, current_user.role)
+        cached = _project_rows_to_data(rows)
+        await set_cached_project_list(current_user.id, cached)
 
-    rows = await getprojects(None, db, current_user.id, current_user.role)
-    data = _project_rows_to_data(rows)
-    await set_cached_project_list(current_user.id, data)
-    return success_response(message="返回项目列表成功", data=data)
+    total = len(cached)
+    items = cached[skip : skip + page_size]
+    return success_response(
+        message="返回项目列表成功",
+        data={
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        },
+    )
 
 
 @router.get("/list/gap")
@@ -109,12 +150,13 @@ async def gap_logs(
         db, gap_id, user_id=current_user.id, role=current_user.role
     )
     data = []
-    for r in rows:
+    for r, actor in rows:
         data.append(
             {
                 "id": r.id,
                 "gap_id": r.gap_id,
                 "actor_id": r.actor_id,
+                "actor_name": actor.username if actor else None,
                 "action": r.action,
                 "from_status": r.from_status,
                 "to_status": r.to_status,

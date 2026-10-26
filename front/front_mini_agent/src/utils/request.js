@@ -30,12 +30,19 @@ instance.interceptors.response.use(
     return response
   },
   function (error) {
-    // 迷你助手暂无登录；以后有 token 可在此处理 401 跳转
-    if (error.response?.status === 401) { 
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      location.href = '/login'
-     }
+    if (error.response?.status === 401) {
+      const url = String(error.config?.url || '')
+      // 登录接口本身的 401（账号密码错误）交给 Login.vue 弹提示，不要整页跳转
+      const isLoginRequest = url.includes('/api/user/login')
+      const onLoginPage = location.pathname === '/login' || location.pathname.endsWith('/login')
+      if (!isLoginRequest) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('userInfo')
+        if (!onLoginPage) {
+          location.href = '/login'
+        }
+      }
+    }
     return Promise.reject(error)
   },
 )

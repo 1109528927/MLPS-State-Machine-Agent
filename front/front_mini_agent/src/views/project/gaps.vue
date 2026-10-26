@@ -1,13 +1,29 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getgap_project_id, postGapAction, getGapLogs, get_gapscount } from '@/api/projects'
+import {
+  getgap_project_id,
+  postGapAction,
+  getGapLogs,
+  get_gapscount,
+  getprojects,
+  get_alluser,
+} from '@/api/projects'
 import CreateGapDialog from './CreateGapDialog.vue'
 
 const route = useRoute()
+const router = useRouter()
 const loading = ref(false)
+
+function goBackProjects() {
+  router.push('/project')
+}
 const gaps = ref([])
+const projectName = ref('')
+const members = ref([])
+/** null = 全部；否则按状态过滤 */
+const statusFilter = ref(null)
 const actionLoading = ref(false)
 
 const drawerVisible = ref(false)
@@ -68,6 +84,10 @@ function canDo(action) {
   return role.value === ACTION_ROLES[action]
 }
 
+const hasAnyAction = computed(() =>
+  ['record', 'submit', 'reject', 'approve', 'close'].some((a) => canDo(a)),
+)
+
 const count_obj = ref({})
 
 const statusSummary = computed(() =>
@@ -81,6 +101,41 @@ const statusSummary = computed(() =>
 const totalCount = computed(() =>
   statusSummary.value.reduce((sum, row) => sum + row.num, 0),
 )
+
+const filteredGaps = computed(() => {
+  if (!statusFilter.value) return gaps.value
+  return gaps.value.filter((g) => g.status === statusFilter.value)
+})
+
+function setStatusFilter(status) {
+  statusFilter.value = status
+}
+
+function clearStatusFilter() {
+  statusFilter.value = null
+}
+
+async function loadProjectName() {
+  const pid = Number(route.params.id)
+  try {
+    const res = await getprojects({ page: 1, page_size: 100 })
+    const items = res.data?.data?.items ?? []
+    const hit = items.find((p) => Number(p.id) === pid)
+    projectName.value = hit?.name || ''
+  } catch {
+    projectName.value = ''
+  }
+}
+
+async function loadMembers() {
+  const pid = Number(route.params.id)
+  try {
+    const res = await get_alluser({ project_id: pid })
+    members.value = res.data?.data ?? []
+  } catch {
+    members.value = []
+  }
+}
 
 const on_getgap_detail = async () => {
   loading.value = true
@@ -171,60 +226,112 @@ async function onAction(action) {
   }
 }
 
-onMounted(on_getgap_detail)
+onMounted(() => {
+  loadProjectName()
+  loadMembers()
+  on_getgap_detail()
+})
 </script>
 
 <template>
   <div class="page-panel">
     <div class="title-row">
-      <div>
-        <h2 class="page-title">差距列表</h2>
-        <p class="sub">项目 ID：{{ route.params.id }}</p>
+      <div class="page-head title-left">
+        <button
+          type="button"
+          class="page-back"
+          title="返回项目列表"
+          @click="goBackProjects"
+        >
+          ←
+        </button>
+        <div class="page-head-main">
+          <h2 class="page-title">差距列表</h2>
+          <p class="sub">
+            {{ projectName || `项目 #${route.params.id}` }}
+            <template v-if="projectName"> · id {{ route.params.id }}</template>
+          </p>
+        </div>
       </div>
       <el-button type="primary" @click="createVisible = true">录入差距</el-button>
     </div>
 
+    <div class="member-bar">
+      <span class="member-bar-label">项目成员</span>
+      <template v-if="members.length === 0">
+        <span class="member-empty">暂无成员</span>
+      </template>
+      <template v-else>
+        <span
+          v-for="m in members"
+          :key="m.user_id"
+          class="member-tag"
+          :title="`工号：${m.employee_no || '—'}`"
+        >
+          {{ m.username }}
+        </span>
+      </template>
+    </div>
+
     <div class="status-bar" v-loading="loading">
-      <div class="status-total">
+      <button
+        type="button"
+        class="status-total status-filter-btn"
+        :class="{ active: !statusFilter }"
+        title="显示全部"
+        @click="clearStatusFilter"
+      >
         <span class="status-total-label">合计</span>
         <span class="status-total-num">{{ totalCount }}</span>
-      </div>
-      <div
+      </button>
+      <button
         v-for="item in statusSummary"
         :key="item.status"
-        class="status-chip"
-        :class="'tone-' + item.tone"
+        type="button"
+        class="status-chip status-filter-btn"
+        :class="['tone-' + item.tone, { active: statusFilter === item.status }]"
+        :title="`筛选：${item.status}`"
+        @click="setStatusFilter(item.status)"
       >
         <span class="status-chip-label">{{ item.status }}</span>
         <span class="status-chip-num">{{ item.num }}</span>
-      </div>
+      </button>
     </div>
 
-    <div v-loading="loading" class="list">
-      <p v-if="!loading && gaps.length === 0">暂无差距项</p>
-
-      <div class="head item">
-        <div>标题</div>
-        <div>状态</div>
-        <div>类别</div>
-        <div>风险</div>
-        <div>创建时间</div>
-      </div>
-
-      <div
-        v-for="item in gaps"
-        :key="item.id"
-        class="card"
-        @click="openDrawer(item)"
-      >
-        <div class="item">
-          <div>{{ item.title }}</div>
-          <div>{{ item.status }}</div>
-          <div>{{ item.category }}</div>
-          <div>{{ item.risk_level }}</div>
-          <div>{{ item.create_at }}</div>
+    <div v-loading="loading" class="list-card">
+      <p v-if="!loading && gaps.length === 0" class="list-empty">
+        暂无差距项
+        <button type="button" class="empty-cta" @click="createVisible = true">
+          去录入
+        </button>
+      </p>
+      <p v-else-if="!loading && filteredGaps.length === 0" class="list-empty">
+        当前状态无数据
+        <button type="button" class="empty-cta" @click="clearStatusFilter">
+          查看全部
+        </button>
+      </p>
+      <template v-else>
+        <div class="list-head cols">
+          <div>标题</div>
+          <div>状态</div>
+          <div>类别</div>
+          <div>风险</div>
+          <div>创建时间</div>
         </div>
-      </div>
+        <div
+          v-for="item in filteredGaps"
+          :key="item.id"
+          class="list-row cols"
+          @click="openDrawer(item)"
+        >
+          <div class="name">{{ item.title }}</div>
+          <div class="muted">{{ item.status }}</div>
+          <div class="muted">{{ item.category || '—' }}</div>
+          <div class="muted">{{ item.risk_level || '—' }}</div>
+          <div class="muted">{{ item.create_at }}</div>
+        </div>
+      </template>
     </div>
 
     <CreateGapDialog
@@ -242,13 +349,34 @@ onMounted(on_getgap_detail)
     >
       <template v-if="current">
         <div class="drawer-body">
-          <p><span>标题：</span>{{ current.title }}</p>
-          <p><span>状态：</span>{{ current.status }}</p>
-          <p><span>类别：</span>{{ current.category }}</p>
-          <p><span>风险：</span>{{ current.risk_level }}</p>
-          <p><span>原因：</span>{{ current.reason }}</p>
-          <p><span>要求：</span>{{ current.requirement }}</p>
-          <p><span>创建时间：</span>{{ current.create_at }}</p>
+          <div class="field">
+            <span class="field-label">标题</span>
+            <span class="field-value">{{ current.title }}</span>
+          </div>
+          <div class="field">
+            <span class="field-label">状态</span>
+            <span class="field-value">{{ current.status }}</span>
+          </div>
+          <div class="field">
+            <span class="field-label">类别</span>
+            <span class="field-value">{{ current.category || '—' }}</span>
+          </div>
+          <div class="field">
+            <span class="field-label">风险</span>
+            <span class="field-value">{{ current.risk_level || '—' }}</span>
+          </div>
+          <div class="field">
+            <span class="field-label">原因</span>
+            <span class="field-value">{{ current.reason || '—' }}</span>
+          </div>
+          <div class="field">
+            <span class="field-label">要求</span>
+            <span class="field-value">{{ current.requirement || '—' }}</span>
+          </div>
+          <div class="field">
+            <span class="field-label">创建时间</span>
+            <span class="field-value">{{ current.create_at }}</span>
+          </div>
         </div>
 
         <div class="drawer-actions">
@@ -295,6 +423,9 @@ onMounted(on_getgap_detail)
             关闭
           </el-button>
           <p v-if="!role" class="role-tip">未读取到角色，请重新登录</p>
+          <p v-else-if="!hasAnyAction" class="role-tip muted-tip">
+            当前状态无需您操作（或请用对应角色账号）
+          </p>
         </div>
 
         <div class="logs">
@@ -307,7 +438,9 @@ onMounted(on_getgap_detail)
                 {{ log.from_status }} → {{ log.to_status }}
               </div>
               <div v-if="log.comment" class="log-comment">说明：{{ log.comment }}</div>
-              <div class="log-meta">操作人 #{{ log.actor_id }} · {{ log.create_at }}</div>
+              <div class="log-meta">
+                {{ log.actor_name || `操作人 #${log.actor_id}` }} · {{ log.create_at }}
+              </div>
             </li>
           </ul>
         </div>
@@ -324,154 +457,122 @@ onMounted(on_getgap_detail)
   gap: 12px;
   margin-bottom: 8px;
 }
+.title-left {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
 .title-row .page-title {
   margin-bottom: 4px;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 .sub {
   color: var(--wb-muted);
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   font-size: 13px;
 }
-
-.status-bar {
+.member-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  align-items: stretch;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 14px;
-}
-
-.status-total {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 48px;
-  padding: 5px 8px;
-  border-radius: 6px;
-  background: var(--wb-sidebar);
-  color: #fff;
-}
-
-.status-total-label {
-  font-size: 10px;
-  opacity: 0.75;
-}
-
-.status-total-num {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.15;
-  margin-top: 1px;
-}
-
-.status-chip {
-  flex: 1;
-  min-width: 64px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1px;
-  padding: 5px 8px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: var(--wb-radius-sm);
   border: 1px solid var(--wb-border);
   background: #f7faf9;
 }
-
-.status-chip-label {
-  font-size: 10px;
-  color: var(--wb-muted);
-}
-
-.status-chip-num {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.15;
-  color: var(--wb-text);
-}
-
-.tone-pending {
-  border-color: #e2c49a;
-  background: #fbf6ee;
-}
-.tone-pending .status-chip-num {
-  color: #a07030;
-}
-.tone-doing {
-  border-color: #9bbad4;
-  background: #eef4f9;
-}
-.tone-doing .status-chip-num {
-  color: #3a6d94;
-}
-.tone-review {
-  border-color: #c4b48a;
-  background: #f8f4e8;
-}
-.tone-review .status-chip-num {
-  color: #8a7340;
-}
-.tone-pass {
-  border-color: #9bc4b6;
-  background: var(--wb-accent-soft);
-}
-.tone-pass .status-chip-num {
-  color: var(--wb-accent);
-}
-.tone-closed {
-  border-color: #c9ced6;
-  background: #f2f4f7;
-}
-.tone-closed .status-chip-num {
-  color: #5c6673;
-}
-
-.card {
-  cursor: pointer;
-  padding: 12px;
-  border-radius: 8px;
-  transition: background 0.15s ease;
-}
-.card:hover {
-  background: var(--wb-accent-soft);
-}
-.item {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
-  gap: 12px;
-  align-items: center;
-}
-.head {
+.member-bar-label {
+  flex-shrink: 0;
+  font-size: 12px;
   font-weight: 600;
+  color: var(--wb-muted);
+  margin-right: 4px;
+}
+.member-empty {
   font-size: 13px;
   color: var(--wb-muted);
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--wb-border);
-  margin-bottom: 4px;
 }
-.drawer-body p {
-  margin: 10px 0;
+.member-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--wb-radius-sm);
+  border: 1px solid rgba(29, 107, 92, 0.22);
+  background: var(--wb-accent-soft);
+  color: var(--wb-accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+.cols {
+  grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
+}
+@media (max-width: 720px) {
+  .cols {
+    grid-template-columns: 1.4fr 0.9fr 0.8fr 0.7fr 1fr;
+    font-size: 12px;
+    gap: 6px;
+  }
+  .title-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+.drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-label {
+  font-size: 12px;
+  color: var(--wb-muted);
+  font-weight: 500;
+}
+.field-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wb-text);
   line-height: 1.5;
   word-break: break-word;
-}
-.drawer-body span {
-  font-weight: bold;
-  color: #333;
 }
 .drawer-actions {
   margin-top: 24px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 .role-tip {
   width: 100%;
-  color: #c45656;
+  color: var(--wb-danger);
   font-size: 13px;
+}
+.muted-tip {
+  color: var(--wb-muted);
+}
+.empty-cta {
+  margin-left: 10px;
+  border: none;
+  background: transparent;
+  color: var(--wb-accent);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
 }
 .logs {
   margin-top: 28px;
   padding-top: 16px;
   border-top: 1px solid var(--wb-border);
+}
+.logs h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
 }
 .logs ul {
   padding-left: 18px;
@@ -481,18 +582,13 @@ onMounted(on_getgap_detail)
   margin-bottom: 12px;
 }
 .log-comment {
-  color: #555;
+  color: var(--wb-text);
   margin-top: 4px;
+  opacity: 0.85;
 }
 .log-meta {
   font-size: 12px;
   color: var(--wb-muted);
   margin-top: 2px;
-}
-
-@media (max-width: 720px) {
-  .status-chip {
-    min-width: calc(33.33% - 6px);
-  }
 }
 </style>

@@ -69,10 +69,8 @@ min_agent_app_review/
 ├── front/front_mini_agent/   # Vue3 + Nginx 镜像
 ├── docker/mysql/init.sql     # 首次建表 + 种子账号
 ├── docker-compose.yml
-├── .env.example
-├── README.md
-├── 等保实施.md            # 个人实施学习笔记（可不对外）
-└── 缓存点.md
+├── .env.example          # 复制为 .env 后填写密钥（勿提交 .env）
+└── README.md
 ```
 
 ---
@@ -135,6 +133,5 @@ pnpm dev
 
 ## 说明
 
-仓库内 `等保实施.md` / `缓存点.md` 为**个人学习与复习笔记**，不必对外分发；对外以本 README 为准。
-
+个人学习笔记、演示讲稿、任务书等本地文档已通过 `.gitignore` 排除，不进入本仓库；对外以本 README 为准。真实 API Key 只放在本地 `.env`，勿提交。
 

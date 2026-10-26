@@ -66,3 +66,10 @@ async def get_user_by_token(db: AsyncSession, token: str):
     stmt_user = select(User).where(User.id == row.user_id)
     return (await db.execute(stmt_user)).scalar_one_or_none()
 
+
+async def list_all_users(db: AsyncSession):
+    """经理分配成员用：返回全部用户（不含密码）。"""
+    stmt = select(User).order_by(User.id.asc())
+    result = await db.execute(stmt)
+    return result.scalars().all()
+

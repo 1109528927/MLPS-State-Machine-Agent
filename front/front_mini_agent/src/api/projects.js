@@ -1,5 +1,6 @@
 import request from '@/utils/request'
 
+/** 项目列表（分页）：params 可含 name / page / page_size；data = { items, total, page, page_size } */
 export const getprojects = (params) => {
   return request.get('/api/project/list', { params })
 }

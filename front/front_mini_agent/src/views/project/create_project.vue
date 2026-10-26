@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const form = ref({})
+const submitting = ref(false)
 
 const add_project = async () => {
   const data = {
@@ -16,12 +17,15 @@ const add_project = async () => {
     ElMessage.warning('请输入项目名称')
     return
   }
+  submitting.value = true
   try {
     const res = await post_add_project(data)
     ElMessage.success(res.data?.message || '创建成功')
     router.push('/project')
   } catch (e) {
     ElMessage.error(e.response?.data?.message || '创建失败')
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -32,7 +36,19 @@ const cancel = () => {
 
 <template>
   <div class="page-panel form-panel">
-    <h2 class="page-title">新建项目</h2>
+    <div class="page-head">
+      <button
+        type="button"
+        class="page-back"
+        title="返回项目列表"
+        @click="cancel"
+      >
+        ←
+      </button>
+      <div class="page-head-main">
+        <h2 class="page-title">新建项目</h2>
+      </div>
+    </div>
     <el-form class="innerbox" label-width="80px" label-position="right">
       <el-form-item label="项目名称">
         <el-input v-model="form.name" placeholder="请输入项目名称" />
@@ -40,19 +56,21 @@ const cancel = () => {
       <el-form-item label="备注">
         <el-input v-model="form.remark" placeholder="请输入备注" />
       </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="add_project">创建</el-button>
-        <el-button @click="cancel">取消</el-button>
+      <el-form-item class="form-actions-item">
+        <div class="form-actions">
+          <el-button @click="cancel">取消</el-button>
+          <el-button type="primary" :loading="submitting" @click="add_project">创建</el-button>
+        </div>
       </el-form-item>
     </el-form>
   </div>
 </template>
 
 <style scoped>
-.form-panel {
-  max-width: 560px;
-}
 .innerbox {
   max-width: 480px;
+}
+.form-actions-item :deep(.el-form-item__content) {
+  justify-content: flex-end;
 }
 </style>

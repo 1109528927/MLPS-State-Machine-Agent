@@ -3,12 +3,13 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { post_login } from '@/api/login'
+import { warmupAgent } from '@/api/chat'
 
 const router = useRouter()
 const loading = ref(false)
-interface LoginForm{
-  username:string
-  password:string
+interface LoginForm {
+  username: string
+  password: string
 }
 const form = ref<LoginForm>({
   username: '',
@@ -30,14 +31,17 @@ async function onLogin() {
     if (payload?.token) {
       localStorage.setItem('token', payload.token)
       localStorage.setItem('userInfo', JSON.stringify(payload.userInfo ?? {}))
+      // 后台预热 Agent，不阻塞进首页；失败忽略
+      warmupAgent().catch(() => {})
     }
     ElMessage.success(res.data?.message || '登录成功')
     await router.push('/project')
   } catch (e) {
-  console.error(e)
-  const err = e as { response?: { data?: { message?: string } } }
-  ElMessage.error(err.response?.data?.message || '登录失败')
-} finally {
+    console.error(e)
+    const err = e as { response?: { data?: { message?: string; detail?: string } } }
+    const msg = err.response?.data?.message || err.response?.data?.detail || '登录失败'
+    ElMessage.error(typeof msg === 'string' ? msg : '登录失败')
+  } finally {
     loading.value = false
   }
 }
@@ -45,6 +49,7 @@ async function onLogin() {
 
 <template>
   <div class="login-page">
+    <div class="login-grid" aria-hidden="true" />
     <div class="login-card">
       <div class="login-brand">
         <div class="mark">等</div>
@@ -66,7 +71,7 @@ async function onLogin() {
             show-password
           />
         </el-form-item>
-        <el-button type="primary" native-type="submit" :loading="loading" class="submit" >
+        <el-button type="primary" native-type="submit" :loading="loading" class="submit">
           登录
         </el-button>
       </el-form>
@@ -76,67 +81,103 @@ async function onLogin() {
 
 <style scoped>
 .login-page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  overflow: hidden;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(29, 107, 92, 0.18), transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(21, 32, 43, 0.12), transparent 45%),
+    radial-gradient(ellipse at 18% 18%, rgba(29, 107, 92, 0.22), transparent 52%),
+    radial-gradient(ellipse at 82% 78%, rgba(21, 32, 43, 0.14), transparent 48%),
     var(--wb-bg);
 }
 
+.login-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(21, 32, 43, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(21, 32, 43, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  pointer-events: none;
+}
+
 .login-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 420px;
   background: var(--wb-card);
   border: 1px solid var(--wb-border);
-  border-radius: 12px;
-  box-shadow: var(--wb-shadow);
-  padding: 28px 28px 32px;
+  border-radius: var(--wb-radius-lg);
+  box-shadow: var(--wb-shadow-hover);
+  padding: 32px 32px 36px;
+  animation: login-in 0.45s ease both;
+}
+
+@keyframes login-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .login-brand {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--wb-border);
 }
 
 .mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--wb-radius-md);
   background: var(--wb-accent);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(29, 107, 92, 0.3);
+  flex-shrink: 0;
 }
 
 .product {
   margin: 0;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
 }
 
 .hint {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
   color: var(--wb-muted);
 }
 
 .title {
-  margin: 0 0 12px;
-  font-size: 16px;
+  margin: 0 0 14px;
+  font-size: 15px;
   font-weight: 600;
+  color: var(--wb-muted);
 }
 
 .submit {
   width: 100%;
   margin-top: 8px;
+  height: 40px;
+  font-weight: 600;
 }
 </style>

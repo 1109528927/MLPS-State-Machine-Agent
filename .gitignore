@@ -1,13 +1,16 @@
-# 环境与密钥
+# 环境与密钥（禁止提交真实 Key）
 .env
 .env.local
+.env.*.local
 *.pem
+*.key
 
 # Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+back/.venv/
 *.egg-info/
 
 # Node
@@ -21,7 +24,23 @@ dist/
 .DS_Store
 Thumbs.db
 
-# 本地杂项
+# 本地杂项 / 日志
 *.log
 .cursor/
 高频问答.md
+
+# —— 个人笔记与演示材料（不对外）——
+等保实施.md
+缓存点.md
+毕设.md
+演示测试流程.md
+四人小组演示讲稿.md
+Agent介绍.md
+Agent实现与文件对照.md
+后端启动命令.txt
+任务书/
+scripts/
+*.pptx
+*.ppt
+*.docx
+*.doc

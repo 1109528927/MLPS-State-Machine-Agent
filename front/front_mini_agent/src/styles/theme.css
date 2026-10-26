@@ -1,4 +1,4 @@
-/* 方案 A：等保整改工作台主题 */
+/* 方案 A：等保整改工作台主题 · 政务青精修 */
 :root {
   --wb-sidebar: #15202b;
   --wb-sidebar-hover: #1e2d3d;
@@ -11,7 +11,37 @@
   --wb-muted: #6b7785;
   --wb-border: #d8dee6;
   --wb-header: #ffffff;
+  --wb-danger: #c45656;
+  --wb-chat-bg: #f0f4f8;
+
+  --wb-radius-sm: 6px;
+  --wb-radius-md: 10px;
+  --wb-radius-lg: 14px;
+
+  --wb-space-xs: 4px;
+  --wb-space-sm: 8px;
+  --wb-space-md: 16px;
+  --wb-space-lg: 24px;
+
   --wb-shadow: 0 1px 3px rgba(21, 32, 43, 0.08);
+  --wb-shadow-hover: 0 4px 14px rgba(21, 32, 43, 0.1);
+
+  /* 状态语义色 */
+  --wb-tone-pending-bg: #fbf6ee;
+  --wb-tone-pending-border: #e2c49a;
+  --wb-tone-pending-text: #a07030;
+  --wb-tone-doing-bg: #eef4f9;
+  --wb-tone-doing-border: #9bbad4;
+  --wb-tone-doing-text: #3a6d94;
+  --wb-tone-review-bg: #f8f4e8;
+  --wb-tone-review-border: #c4b48a;
+  --wb-tone-review-text: #8a7340;
+  --wb-tone-pass-bg: #e6f2ef;
+  --wb-tone-pass-border: #9bc4b6;
+  --wb-tone-pass-text: #1d6b5c;
+  --wb-tone-closed-bg: #f2f4f7;
+  --wb-tone-closed-border: #c9ced6;
+  --wb-tone-closed-text: #5c6673;
 
   --el-color-primary: #1d6b5c;
   --el-color-primary-light-3: #4a9184;
@@ -32,8 +62,15 @@ body,
   margin: 0;
   height: 100%;
   color: var(--wb-text);
-  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family:
+    'Noto Sans SC',
+    'Source Han Sans SC',
+    'PingFang SC',
+    'Microsoft YaHei',
+    'Segoe UI',
+    sans-serif;
   background: var(--wb-bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -44,25 +81,248 @@ a {
 /* 业务页统一白卡片 */
 .page-panel {
   background: var(--wb-card);
-  border-radius: 10px;
+  border-radius: var(--wb-radius-lg);
   border: 1px solid var(--wb-border);
   box-shadow: var(--wb-shadow);
-  padding: 20px 24px;
+  padding: var(--wb-space-lg);
   max-width: 960px;
   width: 100%;
   margin: 0 auto;
 }
 
+/* 子页返回：左上角箭头 */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.page-head-main {
+  flex: 1;
+  min-width: 0;
+}
+.page-back {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin-top: 2px;
+  border: 1px solid var(--wb-border);
+  background: var(--wb-card);
+  border-radius: var(--wb-radius-sm);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--wb-text);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.page-back:hover {
+  border-color: var(--wb-accent);
+  color: var(--wb-accent);
+  background: var(--wb-accent-soft);
+}
+
 .page-panel .page-title {
-  margin: 0 0 16px;
+  margin: 0 0 var(--wb-space-md);
+  padding-bottom: 12px;
   font-size: 20px;
   font-weight: 600;
   color: var(--wb-text);
+  border-bottom: 1px solid var(--wb-border);
+  letter-spacing: 0.01em;
 }
 
 .page-panel .page-toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: var(--wb-space-md);
+  flex-wrap: wrap;
+}
+
+.page-panel.form-panel {
+  max-width: 560px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+/* 统一列表 */
+.list-card {
+  min-height: 120px;
+}
+
+.list-empty {
+  color: var(--wb-muted);
+  text-align: center;
+  padding: 40px 0;
+  margin: 0;
+  font-size: 14px;
+}
+
+.list-head,
+.list-row {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+}
+
+.list-head {
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wb-muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--wb-border);
+  margin-bottom: 4px;
+}
+
+.list-row {
+  cursor: pointer;
+  padding: 12px 14px;
+  border-radius: var(--wb-radius-md);
+  border-left: 3px solid transparent;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.list-row:hover {
+  background: var(--wb-accent-soft);
+  border-left-color: var(--wb-accent);
+  box-shadow: var(--wb-shadow);
+}
+
+.list-row .name {
+  font-weight: 600;
+}
+
+.list-row .muted,
+.list-muted {
+  color: var(--wb-muted);
+  font-size: 13px;
+}
+
+/* 状态统计条 */
+.status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: var(--wb-space-md);
+}
+
+.status-total {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 52px;
+  padding: 8px 10px;
+  border-radius: var(--wb-radius-sm);
+  background: var(--wb-sidebar);
+  color: #fff;
+}
+
+.status-total-label {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.status-total-num {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.status-chip {
+  flex: 1;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--wb-radius-sm);
+  border: 1px solid var(--wb-border);
+  background: #f7faf9;
+}
+
+.status-filter-btn {
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+.status-filter-btn:hover {
+  transform: translateY(-1px);
+}
+.status-filter-btn.active {
+  box-shadow: 0 0 0 2px var(--wb-accent);
+}
+
+.status-chip-label {
+  font-size: 11px;
+  color: var(--wb-muted);
+}
+
+.status-chip-num {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--wb-text);
+}
+
+.tone-pending {
+  border-color: var(--wb-tone-pending-border);
+  background: var(--wb-tone-pending-bg);
+}
+.tone-pending .status-chip-num {
+  color: var(--wb-tone-pending-text);
+}
+.tone-doing {
+  border-color: var(--wb-tone-doing-border);
+  background: var(--wb-tone-doing-bg);
+}
+.tone-doing .status-chip-num {
+  color: var(--wb-tone-doing-text);
+}
+.tone-review {
+  border-color: var(--wb-tone-review-border);
+  background: var(--wb-tone-review-bg);
+}
+.tone-review .status-chip-num {
+  color: var(--wb-tone-review-text);
+}
+.tone-pass {
+  border-color: var(--wb-tone-pass-border);
+  background: var(--wb-tone-pass-bg);
+}
+.tone-pass .status-chip-num {
+  color: var(--wb-tone-pass-text);
+}
+.tone-closed {
+  border-color: var(--wb-tone-closed-border);
+  background: var(--wb-tone-closed-bg);
+}
+.tone-closed .status-chip-num {
+  color: var(--wb-tone-closed-text);
+}
+
+@media (max-width: 720px) {
+  .status-chip {
+    min-width: calc(33.33% - 8px);
+  }
 }

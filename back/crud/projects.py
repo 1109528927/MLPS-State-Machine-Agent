@@ -25,22 +25,16 @@ async def is_project_member(db: AsyncSession, user_id: int, project_id: int) -> 
     return result.scalar_one_or_none() is not None
 
 
-async def getprojects(name: str | None, db: AsyncSession, user_id: int, role: str):
-    """
-    核查员：只返回成员表里的项目。
-    经理：返回全部项目。
-    """
+def _project_list_stmt(name: str | None, user_id: int, role: str, project_ids: list | None):
+    """拼项目列表查询（经理全库 / 核查员按成员 id）。"""
     if is_manager(role):
         stmt = select(Project).order_by(Project.create_at.desc())
         if name:
             stmt = stmt.where(Project.name.like(f"%{name}%"))
-        result = await db.execute(stmt)
-        return result.scalars().all()
+        return stmt
 
-    project_ids = await list_project_ids_for_user(db, user_id)
     if not project_ids:
-        return []
-
+        return None
     stmt = (
         select(Project)
         .where(Project.id.in_(project_ids))
@@ -48,8 +42,51 @@ async def getprojects(name: str | None, db: AsyncSession, user_id: int, role: st
     )
     if name:
         stmt = stmt.where(Project.name.like(f"%{name}%"))
+    return stmt
+
+
+async def getprojects(name: str | None, db: AsyncSession, user_id: int, role: str):
+    """
+    核查员：只返回成员表里的项目。
+    经理：返回全部项目。
+    （全量，给缓存填充 / Agent 工具复用。）
+    """
+    project_ids = None
+    if not is_manager(role):
+        project_ids = await list_project_ids_for_user(db, user_id)
+        if not project_ids:
+            return []
+    stmt = _project_list_stmt(name, user_id, role, project_ids)
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+async def getprojects_page(
+    name: str | None,
+    db: AsyncSession,
+    user_id: int,
+    role: str,
+    skip: int,
+    limit: int,
+):
+    """
+    分页查项目。返回 (rows, total)。
+    有搜索词时由 router 调用；无搜索走缓存切片时不必调此函数。
+    """
+    project_ids = None
+    if not is_manager(role):
+        project_ids = await list_project_ids_for_user(db, user_id)
+        if not project_ids:
+            return [], 0
+
+    stmt = _project_list_stmt(name, user_id, role, project_ids)
+    if stmt is None:
+        return [], 0
+
+    count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
+    total = int((await db.execute(count_stmt)).scalar_one())
+    result = await db.execute(stmt.offset(skip).limit(limit))
+    return list(result.scalars().all()), total
 
 
 async def getlist_gaps(
@@ -176,12 +213,13 @@ async def apply_gap_action(
 async def list_gap_logs(db: AsyncSession, gap_id: int, user_id: int, role: str):
     await ensure_gap_access(db, user_id, gap_id, role)
     stmt = (
-        select(GapActionLog)
+        select(GapActionLog, User)
+        .outerjoin(User, User.id == GapActionLog.actor_id)
         .where(GapActionLog.gap_id == gap_id)
         .order_by(GapActionLog.create_at.asc())
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return result.all()
 
 
 async def post_create_project(name:str,remark:str|None,db:AsyncSession,current_user_id:int,user_role:str):

@@ -7,3 +7,8 @@ export const post_register = (data) => {
 export const post_login = (data) => {
   return request.post('/api/user/login', data)
 }
+
+/** 经理：用户列表（分配成员下拉） */
+export const get_user_list = () => {
+  return request.get('/api/user/list')
+}

@@ -49,7 +49,7 @@ function logout() {
           <div class="nav-group">管理</div>
           <router-link class="nav-item" to="/users/create">开通账号</router-link>
           <router-link class="nav-item" to="/project/create">新建项目</router-link>
-          <router-link class="nav-item" to="/project/devideuser">分配核查</router-link>
+          <router-link class="nav-item" to="/project/devideuser">分配成员</router-link>
         </template>
       </nav>
     </aside>
@@ -81,46 +81,49 @@ function logout() {
 }
 
 .sidebar {
-  width: 220px;
+  width: 232px;
   flex-shrink: 0;
   background: var(--wb-sidebar);
   color: #e8eef4;
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
+  padding: 18px 12px;
 }
 
 .brand {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  padding: 8px 10px 20px;
+  padding: 10px 10px 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--wb-radius-md);
   background: var(--wb-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 18px;
+  box-shadow: 0 2px 8px rgba(29, 107, 92, 0.35);
+  flex-shrink: 0;
 }
 
 .brand-name {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1.3;
+  letter-spacing: 0.02em;
 }
 
 .brand-sub {
   font-size: 12px;
-  color: rgba(232, 238, 244, 0.55);
-  margin-top: 2px;
+  color: rgba(232, 238, 244, 0.5);
+  margin-top: 3px;
 }
 
 .nav {
@@ -130,20 +133,24 @@ function logout() {
 }
 
 .nav-group {
-  margin: 14px 10px 6px;
+  margin: 18px 10px 8px;
   font-size: 11px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(232, 238, 244, 0.4);
+  color: rgba(232, 238, 244, 0.38);
+  font-weight: 600;
 }
 
 .nav-item {
   display: block;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--wb-radius-sm);
   color: rgba(232, 238, 244, 0.82);
   font-size: 14px;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .nav-item:hover {
@@ -155,6 +162,7 @@ function logout() {
   background: var(--wb-sidebar-active);
   color: #fff;
   box-shadow: inset 3px 0 0 var(--wb-accent);
+  font-weight: 600;
 }
 
 .main-wrap {
@@ -169,10 +177,11 @@ function logout() {
   flex-shrink: 0;
   background: var(--wb-header);
   border-bottom: 1px solid var(--wb-border);
+  box-shadow: 0 1px 0 rgba(21, 32, 43, 0.03);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 var(--wb-space-lg);
 }
 
 .topbar-title {
@@ -184,13 +193,13 @@ function logout() {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .user-meta {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  gap: 10px;
   line-height: 1.25;
 }
 
@@ -201,27 +210,38 @@ function logout() {
 
 .user-role {
   font-size: 12px;
-  color: var(--wb-muted);
+  color: var(--wb-accent);
+  background: var(--wb-accent-soft);
+  border: 1px solid rgba(29, 107, 92, 0.2);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-weight: 500;
 }
 
 .logout-btn {
-  border: 1px solid var(--wb-border);
-  background: #fff;
-  color: var(--wb-text);
-  border-radius: 6px;
-  padding: 6px 12px;
+  border: 1px solid rgba(29, 107, 92, 0.35);
+  background: transparent;
+  color: var(--wb-accent);
+  border-radius: var(--wb-radius-sm);
+  padding: 6px 14px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .logout-btn:hover {
+  background: var(--wb-accent);
   border-color: var(--wb-accent);
-  color: var(--wb-accent);
+  color: #fff;
 }
 
 .content {
   flex: 1;
   overflow: auto;
-  padding: 20px 24px 32px;
+  padding: var(--wb-space-lg) var(--wb-space-lg) 36px;
 }
 </style>
